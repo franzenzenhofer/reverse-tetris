@@ -90,22 +90,150 @@ export class Renderer {
   animateRemoval(piece: Piece): Promise<void> {
     return new Promise(resolve => {
       let opacity = 1;
+      let scale = 1;
+      const startTime = Date.now();
+      
       const animate = () => {
-        opacity -= 0.05;
+        const elapsed = Date.now() - startTime;
+        const progress = elapsed / 300; // 300ms animation
         
-        if (opacity <= 0) {
+        if (progress >= 1) {
           resolve();
           return;
         }
         
-        this.ctx.globalAlpha = opacity;
-        this.drawPiece(piece, false);
-        this.ctx.globalAlpha = 1;
+        opacity = 1 - progress;
+        scale = 1 - progress * 0.3; // Shrink slightly
         
+        this.ctx.save();
+        this.ctx.globalAlpha = opacity;
+        
+        // Draw with scale effect
+        piece.cells.forEach(cell => {
+          const centerX = cell.x * this.config.cellSize + this.config.cellSize / 2;
+          const centerY = cell.y * this.config.cellSize + this.config.cellSize / 2;
+          const size = this.config.cellSize * scale;
+          
+          this.ctx.fillStyle = piece.color;
+          this.ctx.fillRect(
+            centerX - size / 2 + 1,
+            centerY - size / 2 + 1,
+            size - 2,
+            size - 2
+          );
+        });
+        
+        this.ctx.restore();
         requestAnimationFrame(animate);
       };
       
       animate();
+    });
+  }
+
+  animateLineClear(lines: number[]): Promise<void> {
+    return new Promise(resolve => {
+      let progress = 0;
+      const startTime = Date.now();
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        progress = elapsed / 500; // 500ms animation
+        
+        if (progress >= 1) {
+          resolve();
+          return;
+        }
+        
+        this.ctx.save();
+        
+        // Flash effect
+        const flashIntensity = Math.sin(progress * Math.PI * 8) * 0.5 + 0.5;
+        
+        lines.forEach(lineY => {
+          // White flash overlay
+          this.ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity * 0.6})`;
+          this.ctx.fillRect(
+            0,
+            lineY * this.config.cellSize,
+            this.config.cols * this.config.cellSize,
+            this.config.cellSize
+          );
+          
+          // Shrinking line effect
+          const shrink = progress * 0.8;
+          this.ctx.fillStyle = `rgba(255, 255, 0, ${1 - progress})`;
+          this.ctx.fillRect(
+            0,
+            lineY * this.config.cellSize + shrink * this.config.cellSize / 2,
+            this.config.cols * this.config.cellSize,
+            this.config.cellSize * (1 - shrink)
+          );
+        });
+        
+        this.ctx.restore();
+        requestAnimationFrame(animate);
+      };
+      
+      animate();
+    });
+  }
+
+  animateFalling(pieces: Map<number, { from: number; to: number }>): Promise<void> {
+    return new Promise(resolve => {
+      let progress = 0;
+      const startTime = Date.now();
+      const duration = 400; // 400ms falling animation
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function (ease-out)
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        
+        if (progress >= 1) {
+          resolve();
+          return;
+        }
+        
+        this.ctx.save();
+        
+        // Draw falling pieces at interpolated positions
+        pieces.forEach((fallData, pieceId) => {
+          const piece = this.findPieceById(pieceId);
+          if (piece) {
+            const fallDistance = fallData.to - fallData.from;
+            const currentY = fallData.from + fallDistance * easeOut;
+            
+            // Draw piece at current position
+            this.drawPieceAtPosition(piece, currentY);
+          }
+        });
+        
+        this.ctx.restore();
+        requestAnimationFrame(animate);
+      };
+      
+      animate();
+    });
+  }
+
+  private findPieceById(_id: number): Piece | null {
+    // This would need to be passed or accessed somehow
+    return null;
+  }
+
+  private drawPieceAtPosition(piece: Piece, yOffset: number): void {
+    this.ctx.fillStyle = piece.color;
+    
+    piece.cells.forEach(cell => {
+      this.ctx.fillRect(
+        cell.x * this.config.cellSize + 1,
+        yOffset * this.config.cellSize + 1,
+        this.config.cellSize - 2,
+        this.config.cellSize - 2
+      );
     });
   }
 }

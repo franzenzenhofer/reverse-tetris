@@ -67,7 +67,7 @@ export class GameEngine extends EventTarget {
 
     // Apply gravity and check win
     setTimeout(() => {
-      this.applyGravity();
+      this.applyGravityWithAnimation();
       this.clearFullLines();
       
       if (this.state.pieces.size === 0) {
@@ -128,28 +128,83 @@ export class GameEngine extends EventTarget {
     
     if (fullLines.length === 0) return;
     
-    // Remove cells from full lines
-    for (const lineY of fullLines) {
-      for (let x = 0; x < this.config.cols; x++) {
-        this.state.board[lineY][x] = null;
-      }
-    }
-    
-    // Update pieces
-    for (const piece of this.state.pieces.values()) {
-      piece.cells = piece.cells.filter(cell => !fullLines.includes(cell.y));
-      
-      if (piece.cells.length === 0) {
-        this.state.pieces.delete(piece.id);
-      }
-    }
-    
-    // Apply gravity after clearing
-    this.applyGravity();
-    
+    // Trigger line clear animation event
     this.dispatchEvent(new CustomEvent(GAME_EVENTS.LINE_CLEARED, { 
-      detail: { lines: fullLines.length } 
+      detail: { lines: fullLines.length, lineNumbers: fullLines } 
     }));
+    
+    // Remove cells from full lines with delay for animation
+    setTimeout(() => {
+      for (const lineY of fullLines) {
+        for (let x = 0; x < this.config.cols; x++) {
+          this.state.board[lineY][x] = null;
+        }
+      }
+      
+      // Update pieces
+      for (const piece of this.state.pieces.values()) {
+        piece.cells = piece.cells.filter(cell => !fullLines.includes(cell.y));
+        
+        if (piece.cells.length === 0) {
+          this.state.pieces.delete(piece.id);
+        }
+      }
+      
+      // Apply gravity after clearing
+      this.applyGravityWithAnimation();
+    }, 300); // Wait for line clear animation
+  }
+
+  private applyGravityWithAnimation(): void {
+    const fallingPieces = new Map<number, { from: number; to: number }>();
+    
+    let changed = true;
+    while (changed) {
+      changed = false;
+      
+      const sortedPieces = Array.from(this.state.pieces.values()).sort((a, b) => 
+        b.getBottomY() - a.getBottomY()
+      );
+      
+      for (const piece of sortedPieces) {
+        // Clear current position
+        const originalBottomY = piece.getBottomY();
+        piece.cells.forEach(cell => {
+          if (this.state.board[cell.y][cell.x] === piece.id) {
+            this.state.board[cell.y][cell.x] = null;
+          }
+        });
+        
+        // Find fall distance
+        let fallDistance = 0;
+        while (piece.canMoveTo(this.state.board, 0, fallDistance + 1)) {
+          fallDistance++;
+        }
+        
+        if (fallDistance > 0) {
+          // Record falling animation data
+          fallingPieces.set(piece.id, {
+            from: originalBottomY,
+            to: originalBottomY + fallDistance
+          });
+          
+          piece.moveTo(0, fallDistance);
+          changed = true;
+        }
+        
+        // Place in new position
+        piece.cells.forEach(cell => {
+          this.state.board[cell.y][cell.x] = piece.id;
+        });
+      }
+    }
+    
+    // Trigger falling animation if pieces moved
+    if (fallingPieces.size > 0) {
+      this.dispatchEvent(new CustomEvent(GAME_EVENTS.GRAVITY_APPLIED, {
+        detail: { fallingPieces }
+      }));
+    }
   }
 
   private handleLevelComplete(): void {
@@ -178,21 +233,48 @@ export class GameEngine extends EventTarget {
       gapPositions.add(Math.floor(Math.random() * this.config.cols));
     }
     
-    // Fill bottom line except gaps
-    for (let x = 0; x < this.config.cols; x++) {
-      if (!gapPositions.has(x)) {
-        const piece = new Piece(nextId, SHAPES[0], COLORS[nextId - 1], x, targetRow);
-        piece.cells = [{ x, y: targetRow }]; // Single cell
-        this.state.board[targetRow][x] = nextId;
-        this.state.pieces.set(nextId, piece);
-        nextId++;
+    // Fill bottom area with complete tetris pieces, avoiding gaps
+    let attempts = 0;
+    while (attempts < 20) { // Try to fill bottom area
+      const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+      const maxX = this.config.cols - Math.max(...shape.cells.map(c => c.x)) - 1;
+      const x = Math.floor(Math.random() * Math.max(1, maxX + 1));
+      
+      // Try placing at bottom row or just above
+      const testY = targetRow - Math.floor(Math.random() * 2);
+      
+      if (testY >= 0) {
+        const piece = new Piece(nextId, shape, COLORS[nextId - 1], x, testY);
+        
+        // Check if piece conflicts with gaps or existing pieces
+        let conflictsWithGap = false;
+        for (const cell of piece.cells) {
+          if (cell.y === targetRow && gapPositions.has(cell.x)) {
+            conflictsWithGap = true;
+            break;
+          }
+        }
+        
+        if (!conflictsWithGap && piece.cells.every(cell => 
+          cell.x >= 0 && cell.x < this.config.cols && 
+          cell.y >= 0 && cell.y < this.config.rows &&
+          !this.state.board[cell.y][cell.x]
+        )) {
+          piece.cells.forEach(cell => {
+            this.state.board[cell.y][cell.x] = nextId;
+          });
+          this.state.pieces.set(nextId, piece);
+          nextId++;
+        }
       }
+      attempts++;
     }
     
     // Step 2: Add pieces that will fall into gaps (cascade effect)
     gapPositions.forEach(gapX => {
       const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-      const x = Math.max(0, Math.min(this.config.cols - 4, gapX - 1));
+      const maxX = this.config.cols - Math.max(...shape.cells.map(c => c.x)) - 1;
+      const x = Math.max(0, Math.min(maxX, gapX - 1));
       const y = targetRow - Math.floor(Math.random() * 8) - 5;
       
       if (y >= 0) {
@@ -200,7 +282,7 @@ export class GameEngine extends EventTarget {
         
         if (piece.cells.every(cell => 
           cell.y >= 0 && cell.x >= 0 && cell.x < this.config.cols && 
-          !this.state.board[cell.y]?.[cell.x]
+          cell.y < this.config.rows && !this.state.board[cell.y]?.[cell.x]
         )) {
           piece.cells.forEach(cell => {
             this.state.board[cell.y][cell.x] = nextId;
@@ -218,14 +300,15 @@ export class GameEngine extends EventTarget {
       
       let placed = false;
       for (let attempt = 0; attempt < 50; attempt++) {
-        const x = Math.floor(Math.random() * (this.config.cols - 4));
+        const maxX = this.config.cols - Math.max(...shape.cells.map(c => c.x)) - 1;
+        const x = Math.floor(Math.random() * Math.max(1, maxX));
         const y = Math.floor(Math.random() * Math.min(15, this.config.rows - 8));
         
         const piece = new Piece(nextId, shape, COLORS[(nextId - 1) % COLORS.length], x, y);
         
         if (piece.cells.every(cell => 
           cell.y >= 0 && cell.x >= 0 && cell.x < this.config.cols && 
-          !this.state.board[cell.y]?.[cell.x]
+          cell.y < this.config.rows && !this.state.board[cell.y]?.[cell.x]
         )) {
           piece.cells.forEach(cell => {
             this.state.board[cell.y][cell.x] = nextId;
@@ -240,7 +323,11 @@ export class GameEngine extends EventTarget {
       if (!placed) i--;
     }
     
-    this.applyGravity();
+    this.applyGravity(); // No animation for initial generation
+  }
+
+  setLevel(level: number): void {
+    this.state.level = level;
   }
 
   reset(): void {
