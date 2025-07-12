@@ -167,25 +167,69 @@ export class GameEngine extends EventTarget {
     this.state = this.createInitialState();
     this.state.level = this.state.level || 1;
     
-    const pieceCount = Math.min(4 + Math.floor(this.state.level / 2), 12);
     let nextId = 1;
     
-    for (let i = 0; i < pieceCount; i++) {
+    // Step 1: Create almost-complete lines at bottom (guaranteed line clear)
+    const targetRow = this.config.rows - 1;
+    const gaps = 1 + Math.floor(Math.random() * 2); // 1-2 gaps
+    const gapPositions = new Set<number>();
+    
+    while (gapPositions.size < gaps) {
+      gapPositions.add(Math.floor(Math.random() * this.config.cols));
+    }
+    
+    // Fill bottom line except gaps
+    for (let x = 0; x < this.config.cols; x++) {
+      if (!gapPositions.has(x)) {
+        const piece = new Piece(nextId, SHAPES[0], COLORS[nextId - 1], x, targetRow);
+        piece.cells = [{ x, y: targetRow }]; // Single cell
+        this.state.board[targetRow][x] = nextId;
+        this.state.pieces.set(nextId, piece);
+        nextId++;
+      }
+    }
+    
+    // Step 2: Add pieces that will fall into gaps (cascade effect)
+    gapPositions.forEach(gapX => {
       const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-      const color = COLORS[nextId - 1];
+      const x = Math.max(0, Math.min(this.config.cols - 4, gapX - 1));
+      const y = targetRow - Math.floor(Math.random() * 8) - 5;
       
-      let placed = false;
-      for (let attempt = 0; attempt < 100; attempt++) {
-        const x = Math.floor(Math.random() * (this.config.cols - 4));
-        const y = this.config.rows - 5 - Math.floor(Math.random() * Math.min(10, this.config.rows - 5));
+      if (y >= 0) {
+        const piece = new Piece(nextId, shape, COLORS[(nextId - 1) % COLORS.length], x, y);
         
-        const piece = new Piece(nextId, shape, color, x, y);
-        
-        if (piece.cells.every(cell => !this.state.board[cell.y][cell.x])) {
+        if (piece.cells.every(cell => 
+          cell.y >= 0 && cell.x >= 0 && cell.x < this.config.cols && 
+          !this.state.board[cell.y]?.[cell.x]
+        )) {
           piece.cells.forEach(cell => {
             this.state.board[cell.y][cell.x] = nextId;
           });
-          
+          this.state.pieces.set(nextId, piece);
+          nextId++;
+        }
+      }
+    });
+    
+    // Step 3: Add regular pieces for difficulty
+    const extraPieces = Math.min(2 + Math.floor(this.state.level / 3), 8);
+    for (let i = 0; i < extraPieces; i++) {
+      const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+      
+      let placed = false;
+      for (let attempt = 0; attempt < 50; attempt++) {
+        const x = Math.floor(Math.random() * (this.config.cols - 4));
+        const y = Math.floor(Math.random() * Math.min(15, this.config.rows - 8));
+        
+        const piece = new Piece(nextId, shape, COLORS[(nextId - 1) % COLORS.length], x, y);
+        
+        if (piece.cells.every(cell => 
+          cell.y >= 0 && cell.x >= 0 && cell.x < this.config.cols && 
+          !this.state.board[cell.y]?.[cell.x]
+        )) {
+          piece.cells.forEach(cell => {
+            this.state.board[cell.y][cell.x] = nextId;
+          });
           this.state.pieces.set(nextId, piece);
           nextId++;
           placed = true;
