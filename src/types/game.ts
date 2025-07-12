@@ -25,6 +25,12 @@ export interface GameState {
   moves: number;
   level: number;
   animating: boolean;
+  score: number;
+  combo: number;
+  corruptionLevel: number;
+  gameOver: boolean;
+  timeRemaining: number;
+  lastMoveTime: number;
 }
 
 export interface GameConfig {
@@ -39,6 +45,12 @@ export const GAME_EVENTS = {
   LEVEL_COMPLETE: 'level:complete',
   LINE_CLEARED: 'line:cleared',
   GRAVITY_APPLIED: 'gravity:applied',
+  CORRUPTION_RISE: 'corruption:rise',
+  GAME_OVER: 'game:over',
+  SCORE_UPDATE: 'score:update',
+  COMBO_UPDATE: 'combo:update',
+  TIME_UPDATE: 'time:update',
+  NEW_PIECE_SPAWNED: 'piece:spawned',
 } as const;
 
 export type GameEvent = typeof GAME_EVENTS[keyof typeof GAME_EVENTS];

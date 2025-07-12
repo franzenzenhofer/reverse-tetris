@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Level Generation</title>
+    <script type="module">
+        import { GameEngine } from './src/engine/GameEngine.js';
+        import { COLS, ROWS } from './src/engine/constants.js';
+
+        window.addEventListener('load', () => {
+            console.log('🔧 Starting level generation debug...');
+            
+            try {
+                const config = { cols: COLS, rows: ROWS, cellSize: 32 };
+                console.log('📝 Config:', config);
+                
+                const engine = new GameEngine(config);
+                console.log('✅ Engine created');
+                
+                engine.generateLevel();
+                console.log('✅ Level generation called');
+                
+                const state = engine.getState();
+                console.log('📊 Generated state:', {
+                    pieceCount: state.pieces.size,
+                    level: state.level,
+                    moves: state.moves,
+                    boardSample: state.board.slice(-3).map(row => 
+                        row.map(cell => cell === null ? '.' : 'X').join('')
+                    )
+                });
+                
+                // Show pieces
+                console.log('🧩 Pieces:', Array.from(state.pieces.entries()).map(([id, piece]) => ({
+                    id,
+                    cellCount: piece.cells.length,
+                    position: piece.cells[0]
+                })));
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                console.error('Stack:', error.stack);
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>Debug Level Generation</h1>
+    <p>Check browser console for debug output...</p>
+</body>
+</html>

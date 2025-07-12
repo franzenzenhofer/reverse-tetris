@@ -39,4 +39,24 @@ export class Piece implements IPiece {
     cloned.cells = this.cells.map(cell => ({ ...cell }));
     return cloned;
   }
+
+  rotate(): void {
+    // Find center of rotation
+    const minX = Math.min(...this.cells.map(c => c.x));
+    const minY = Math.min(...this.cells.map(c => c.y));
+    const maxX = Math.max(...this.cells.map(c => c.x));
+    const maxY = Math.max(...this.cells.map(c => c.y));
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    
+    // Rotate each cell 90 degrees clockwise around center
+    this.cells = this.cells.map(cell => {
+      const relX = cell.x - centerX;
+      const relY = cell.y - centerY;
+      return {
+        x: Math.round(centerX - relY),
+        y: Math.round(centerY + relX)
+      };
+    });
+  }
 }

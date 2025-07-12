@@ -3,6 +3,12 @@ import { GameState, GameConfig, Piece } from '@/types/game';
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private config: GameConfig;
+  private corruptionLevel: number = 0;
+  private pathClearAnimation: {
+    paths: Array<Array<{x: number, y: number}>>;
+    startTime: number;
+    duration: number;
+  } | null = null;
 
   constructor(canvas: HTMLCanvasElement, config: GameConfig) {
     this.config = config;
@@ -17,7 +23,9 @@ export class Renderer {
   render(state: GameState): void {
     this.clear();
     this.drawGrid();
+    this.drawCorruption();
     this.drawPieces(state);
+    this.drawAnimations();
   }
 
   private clear(): void {
@@ -131,14 +139,15 @@ export class Renderer {
     });
   }
 
-  animateLineClear(lines: number[]): Promise<void> {
+  animatePathTracing(paths: Array<Array<{x: number, y: number}>>): Promise<void> {
     return new Promise(resolve => {
       let progress = 0;
       const startTime = Date.now();
+      const duration = 400; // Faster animation - cells are already gone!
       
       const animate = () => {
         const elapsed = Date.now() - startTime;
-        progress = elapsed / 500; // 500ms animation
+        progress = elapsed / duration;
         
         if (progress >= 1) {
           resolve();
@@ -147,28 +156,85 @@ export class Renderer {
         
         this.ctx.save();
         
-        // Flash effect
-        const flashIntensity = Math.sin(progress * Math.PI * 8) * 0.5 + 0.5;
-        
-        lines.forEach(lineY => {
-          // White flash overlay
-          this.ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity * 0.6})`;
-          this.ctx.fillRect(
-            0,
-            lineY * this.config.cellSize,
-            this.config.cols * this.config.cellSize,
-            this.config.cellSize
-          );
+        // Draw each path progressively
+        paths.forEach((path, pathIndex) => {
+          const pathProgress = Math.max(0, (progress - pathIndex * 0.1) * 1.2); // Stagger paths slightly
+          const cellsToShow = Math.floor(pathProgress * path.length);
           
-          // Shrinking line effect
-          const shrink = progress * 0.8;
-          this.ctx.fillStyle = `rgba(255, 255, 0, ${1 - progress})`;
-          this.ctx.fillRect(
-            0,
-            lineY * this.config.cellSize + shrink * this.config.cellSize / 2,
-            this.config.cols * this.config.cellSize,
-            this.config.cellSize * (1 - shrink)
-          );
+          // Draw traced path cells as ghosts (they're already removed!)
+          for (let i = 0; i < cellsToShow; i++) {
+            const cell = path[i];
+            
+            // Fading ghost effect - shows where cells WERE
+            const fadeOut = 1 - (pathProgress * 0.7);
+            const glowIntensity = Math.sin(pathProgress * Math.PI * 3 + i * 0.3) * 0.3 + 0.7;
+            
+            // Ghost outline only - cells are gone!
+            this.ctx.strokeStyle = `rgba(255, 255, 100, ${glowIntensity * fadeOut})`;
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(
+              cell.x * this.config.cellSize + 3,
+              cell.y * this.config.cellSize + 3,
+              this.config.cellSize - 6,
+              this.config.cellSize - 6
+            );
+            
+            // Draw connection line to next cell
+            if (i < path.length - 1) {
+              const nextCell = path[i + 1];
+              const centerX = cell.x * this.config.cellSize + this.config.cellSize / 2;
+              const centerY = cell.y * this.config.cellSize + this.config.cellSize / 2;
+              const nextCenterX = nextCell.x * this.config.cellSize + this.config.cellSize / 2;
+              const nextCenterY = nextCell.y * this.config.cellSize + this.config.cellSize / 2;
+              
+              this.ctx.strokeStyle = `rgba(255, 255, 150, ${glowIntensity * fadeOut * 0.5})`;
+              this.ctx.lineWidth = 1;
+              this.ctx.beginPath();
+              this.ctx.moveTo(centerX, centerY);
+              this.ctx.lineTo(nextCenterX, nextCenterY);
+              this.ctx.stroke();
+            }
+          }
+        });
+        
+        this.ctx.restore();
+        requestAnimationFrame(animate);
+      };
+      
+      animate();
+    });
+  }
+
+  animateLineClear(paths: Array<Array<{x: number, y: number}>>): Promise<void> {
+    return new Promise(resolve => {
+      let progress = 0;
+      const startTime = Date.now();
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        progress = elapsed / 200; // Even faster - cells are GONE!
+        
+        if (progress >= 1) {
+          resolve();
+          return;
+        }
+        
+        this.ctx.save();
+        
+        // Just a quick flash effect - cells already removed!
+        const flashIntensity = (1 - progress) * 0.5;
+        
+        paths.forEach(path => {
+          path.forEach(cell => {
+            // Quick white flash that fades
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${flashIntensity})`;
+            this.ctx.fillRect(
+              cell.x * this.config.cellSize,
+              cell.y * this.config.cellSize,
+              this.config.cellSize,
+              this.config.cellSize
+            );
+          });
         });
         
         this.ctx.restore();
@@ -183,14 +249,27 @@ export class Renderer {
     return new Promise(resolve => {
       let progress = 0;
       const startTime = Date.now();
-      const duration = 400; // 400ms falling animation
+      const duration = 600; // 600ms for more visible falling
       
       const animate = () => {
         const elapsed = Date.now() - startTime;
         progress = Math.min(elapsed / duration, 1);
         
-        // Easing function (ease-out)
-        const easeOut = 1 - Math.pow(1 - progress, 3);
+        // Bounce easing for more dramatic effect
+        const easeOutBounce = (t: number): number => {
+          if (t < 1 / 2.75) {
+            return 7.5625 * t * t;
+          } else if (t < 2 / 2.75) {
+            t -= 1.5 / 2.75;
+            return 7.5625 * t * t + 0.75;
+          } else if (t < 2.5 / 2.75) {
+            t -= 2.25 / 2.75;
+            return 7.5625 * t * t + 0.9375;
+          } else {
+            t -= 2.625 / 2.75;
+            return 7.5625 * t * t + 0.984375;
+          }
+        };
         
         if (progress >= 1) {
           resolve();
@@ -204,9 +283,17 @@ export class Renderer {
           const piece = this.findPieceById(pieceId);
           if (piece) {
             const fallDistance = fallData.to - fallData.from;
-            const currentY = fallData.from + fallDistance * easeOut;
+            const currentY = fallData.from + fallDistance * easeOutBounce(progress);
             
-            // Draw piece at current position
+            // Add motion blur effect
+            this.ctx.globalAlpha = 0.3;
+            for (let i = 1; i <= 3; i++) {
+              const blurY = currentY - (i * 0.5);
+              this.drawPieceAtPosition(piece, blurY);
+            }
+            
+            // Draw main piece
+            this.ctx.globalAlpha = 1;
             this.drawPieceAtPosition(piece, currentY);
           }
         });
@@ -235,5 +322,89 @@ export class Renderer {
         this.config.cellSize - 2
       );
     });
+  }
+
+  private drawCorruption(): void {
+    if (this.corruptionLevel <= 0) return;
+    
+    const gradient = this.ctx.createLinearGradient(
+      0, 
+      this.config.rows * this.config.cellSize,
+      0,
+      (this.config.rows - this.corruptionLevel) * this.config.cellSize
+    );
+    
+    gradient.addColorStop(0, 'rgba(255, 0, 0, 0.9)');
+    gradient.addColorStop(0.5, 'rgba(200, 0, 0, 0.7)');
+    gradient.addColorStop(1, 'rgba(150, 0, 0, 0)');
+    
+    this.ctx.fillStyle = gradient;
+    this.ctx.fillRect(
+      0,
+      (this.config.rows - this.corruptionLevel) * this.config.cellSize,
+      this.config.cols * this.config.cellSize,
+      this.corruptionLevel * this.config.cellSize
+    );
+    
+    // Draw corruption edge with animated wave
+    const time = Date.now() / 100;
+    this.ctx.strokeStyle = 'rgba(255, 100, 100, 0.8)';
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    
+    for (let x = 0; x <= this.config.cols; x++) {
+      const waveY = Math.sin(x * 0.5 + time) * 5;
+      const y = (this.config.rows - this.corruptionLevel) * this.config.cellSize + waveY;
+      
+      if (x === 0) {
+        this.ctx.moveTo(x * this.config.cellSize, y);
+      } else {
+        this.ctx.lineTo(x * this.config.cellSize, y);
+      }
+    }
+    
+    this.ctx.stroke();
+  }
+
+  private drawAnimations(): void {
+    if (this.pathClearAnimation) {
+      const elapsed = Date.now() - this.pathClearAnimation.startTime;
+      const progress = elapsed / this.pathClearAnimation.duration;
+      
+      if (progress >= 1) {
+        this.pathClearAnimation = null;
+        return;
+      }
+      
+      // Draw path clear animation
+      this.ctx.save();
+      const flashIntensity = (1 - progress) * 0.5;
+      
+      this.pathClearAnimation.paths.forEach(path => {
+        path.forEach(cell => {
+          this.ctx.fillStyle = `rgba(255, 255, 100, ${flashIntensity})`;
+          this.ctx.fillRect(
+            cell.x * this.config.cellSize,
+            cell.y * this.config.cellSize,
+            this.config.cellSize,
+            this.config.cellSize
+          );
+        });
+      });
+      
+      this.ctx.restore();
+    }
+  }
+
+  setCorruptionLevel(level: number): void {
+    this.corruptionLevel = level;
+  }
+
+  setPathClearAnimation(paths: Array<Array<{x: number, y: number}>>): void {
+    this.pathClearAnimation = {
+      paths,
+      startTime: Date.now(),
+      duration: 500
+    };
   }
 }

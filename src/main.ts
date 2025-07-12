@@ -1,6 +1,7 @@
 import { GameEngine } from './engine/GameEngine';
 import { Renderer } from './ui/Renderer';
 import { UI } from './ui/UI';
+import { GameHUD } from './ui/GameHUD';
 import { InputHandler } from './input/InputHandler';
 import { COLS, ROWS, calculateCellSize } from './engine/constants';
 import { GAME_EVENTS, GameConfig } from './types/game';
@@ -10,10 +11,13 @@ class Game {
   private engine: GameEngine;
   private renderer: Renderer;
   private ui: UI;
+  private hud: GameHUD;
   private inputHandler: InputHandler;
   private canvas: HTMLCanvasElement;
   private config: GameConfig;
   private resizeTimeout: number | null = null;
+  private lastTime: number = 0;
+  private animationId: number | null = null;
 
   constructor() {
     // Get canvas element
@@ -31,6 +35,7 @@ class Game {
     
     // Initialize UI
     this.ui = new UI();
+    this.hud = new GameHUD();
     
     // Initialize input
     this.inputHandler = new InputHandler({
@@ -48,6 +53,10 @@ class Game {
     // Start game
     this.engine.generateLevel();
     this.render();
+    
+    // Start game loop
+    this.lastTime = performance.now();
+    this.gameLoop();
   }
 
   private createConfig(): GameConfig {
@@ -80,15 +89,74 @@ class Game {
   private setupEventListeners(): void {
     this.engine.addEventListener(GAME_EVENTS.PIECE_SELECTED, () => this.render());
     this.engine.addEventListener(GAME_EVENTS.PIECE_REMOVED, () => this.render());
-    this.engine.addEventListener(GAME_EVENTS.GRAVITY_APPLIED, () => this.render());
+    
+    // Score and combo events
+    this.engine.addEventListener(GAME_EVENTS.SCORE_UPDATE, (event) => {
+      const detail = (event as CustomEvent).detail;
+      this.hud.updateScore(detail.score, detail.scoreGain);
+    });
+    
+    this.engine.addEventListener(GAME_EVENTS.COMBO_UPDATE, (event) => {
+      const detail = (event as CustomEvent).detail;
+      this.hud.updateCombo(detail.combo);
+    });
+    
+    // Time and corruption events
+    this.engine.addEventListener(GAME_EVENTS.TIME_UPDATE, (event) => {
+      const detail = (event as CustomEvent).detail;
+      this.hud.updateTimer(detail.timeRemaining);
+      this.renderer.setCorruptionLevel(detail.corruptionLevel);
+    });
+    
+    this.engine.addEventListener(GAME_EVENTS.CORRUPTION_RISE, (event) => {
+      const detail = (event as CustomEvent).detail;
+      this.renderer.setCorruptionLevel(detail.level);
+    });
+    
+    // Game over event
+    this.engine.addEventListener(GAME_EVENTS.GAME_OVER, (event) => {
+      const detail = (event as CustomEvent).detail;
+      this.hud.showGameOver(detail.score, () => {
+        this.engine.startNewGame();
+        this.hud.reset();
+        this.render();
+      });
+    });
+    
+    this.engine.addEventListener(GAME_EVENTS.GRAVITY_APPLIED, (event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail?.fallingPieces) {
+        // Animate falling pieces
+        this.renderer.animateFalling(detail.fallingPieces).then(() => {
+          this.render();
+        });
+      } else {
+        this.render();
+      }
+    });
+    
     this.engine.addEventListener(GAME_EVENTS.LINE_CLEARED, (event) => {
-      const detail = (event as CustomEvent).detail as { lines: number };
-      this.ui.showMessage(`${detail.lines} lines cleared!`);
+      const detail = (event as CustomEvent).detail as { 
+        paths: Array<Array<{x: number, y: number}>>,
+        pathCount: number,
+        totalCells: number,
+        bonus: number
+      };
+      
+      // Show message about paths cleared
+      this.ui.showMessage(`${detail.pathCount} path${detail.pathCount > 1 ? 's' : ''} cleared! (${detail.totalCells} cells)`);
+      
+      // Set path animation
+      this.renderer.setPathClearAnimation(detail.paths);
+      
+      // Immediately render to show board state changes
       this.render();
     });
     
     this.engine.addEventListener(GAME_EVENTS.LEVEL_COMPLETE, () => {
+      const state = this.engine.getState();
       this.ui.showWin();
+      this.hud.updateLevel(state.level);
       setTimeout(() => {
         this.ui.hideWin();
         this.render();
@@ -98,6 +166,8 @@ class Game {
 
   private handleCellClick(x: number, y: number): void {
     const state = this.engine.getState();
+    
+    if (state.gameOver) return;
     
     if (x === -1 && y === -1) {
       // Deselect
@@ -112,6 +182,27 @@ class Game {
     const state = this.engine.getState();
     this.renderer.render(state);
     this.ui.update(state);
+  }
+  
+  private gameLoop(): void {
+    const currentTime = performance.now();
+    const deltaTime = currentTime - this.lastTime;
+    this.lastTime = currentTime;
+    
+    // Update game state
+    this.engine.update(deltaTime);
+    
+    // Render
+    this.render();
+    
+    // Continue loop
+    this.animationId = requestAnimationFrame(() => this.gameLoop());
+  }
+  
+  destroy(): void {
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+    }
   }
 }
 
