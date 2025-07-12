@@ -20,6 +20,7 @@ export class GameEngine extends EventTarget {
       moves: 0,
       level: 1,
       animating: false,
+      processingCascades: false,
       score: 0,
       combo: 0,
       corruptionLevel: 0,
@@ -89,19 +90,28 @@ export class GameEngine extends EventTarget {
       detail: { combo: this.state.combo }
     }));
 
-    // Process cascading effects in a loop until stable
-    this.processCascades();
-    
-    // Push back corruption when removing pieces
-    if (this.state.corruptionLevel > 0) {
-      this.state.corruptionLevel = Math.max(0, this.state.corruptionLevel - 0.5);
-    }
-    
-    if (this.state.pieces.size === 0) {
-      this.handleLevelComplete();
-    }
-    
+    // Reset animating immediately after piece removal
     this.state.animating = false;
+    
+    // Process cascading effects asynchronously to prevent UI freeze
+    setTimeout(() => {
+      // Prevent multiple cascade processes
+      if (this.state.processingCascades) return;
+      
+      this.state.processingCascades = true;
+      this.processCascades();
+      
+      // Push back corruption when removing pieces
+      if (this.state.corruptionLevel > 0) {
+        this.state.corruptionLevel = Math.max(0, this.state.corruptionLevel - 0.5);
+      }
+      
+      if (this.state.pieces.size === 0) {
+        this.handleLevelComplete();
+      }
+      
+      this.state.processingCascades = false;
+    }, 100);
   }
 
   private applyGravity(): boolean {

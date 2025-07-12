@@ -25,6 +25,7 @@ export interface GameState {
   moves: number;
   level: number;
   animating: boolean;
+  processingCascades: boolean;
   score: number;
   combo: number;
   corruptionLevel: number;
