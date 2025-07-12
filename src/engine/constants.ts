@@ -3,13 +3,23 @@ import { Shape } from '@/types/game';
 export const COLS = 10;
 export const ROWS = 20;
 
-export const CELL_SIZE = typeof window !== 'undefined' 
-  ? Math.min(
-      Math.floor((window.innerWidth - 20) / COLS),
-      Math.floor((window.innerHeight - 80) / ROWS),
-      32
-    )
-  : 32;
+export function calculateCellSize(): number {
+  if (typeof window === 'undefined') return 32;
+  
+  // Get viewport dimensions accounting for safe areas
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  // Calculate maximum cell size that fits in viewport
+  // Leave some padding for UI elements
+  const maxCellWidth = Math.floor((viewportWidth - 16) / COLS);
+  const maxCellHeight = Math.floor((viewportHeight - 60) / ROWS);
+  
+  // Use the smaller dimension to ensure it fits
+  return Math.min(maxCellWidth, maxCellHeight, 40);
+}
+
+export const CELL_SIZE = calculateCellSize();
 
 export const SHAPES: Shape[] = [
   { name: 'I', cells: [{x: 0, y: 1}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 3, y: 1}] },

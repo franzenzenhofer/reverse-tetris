@@ -20,12 +20,23 @@ export class InputHandler {
   }
 
   private setupEventListeners(): void {
-    // Mouse/touch events
+    // Mouse events
     this.canvas.addEventListener('click', this.handleClick.bind(this));
-    this.canvas.addEventListener('touchend', this.handleTouch.bind(this));
+    
+    // Touch events with proper handling
+    this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+    this.canvas.addEventListener('touchend', this.handleTouch.bind(this), { passive: false });
+    
+    // Prevent default touch behaviors
+    this.canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
     
     // Keyboard events
     document.addEventListener('keydown', this.handleKeydown.bind(this));
+  }
+
+  private handleTouchStart(event: TouchEvent): void {
+    // Prevent double-tap zoom on mobile
+    event.preventDefault();
   }
 
   private handleClick(event: MouseEvent): void {
@@ -68,8 +79,9 @@ export class InputHandler {
   }
 
   destroy(): void {
-    this.canvas.removeEventListener('click', this.handleClick);
-    this.canvas.removeEventListener('touchend', this.handleTouch);
-    document.removeEventListener('keydown', this.handleKeydown);
+    this.canvas.removeEventListener('click', this.handleClick.bind(this));
+    this.canvas.removeEventListener('touchstart', this.handleTouchStart.bind(this));
+    this.canvas.removeEventListener('touchend', this.handleTouch.bind(this));
+    document.removeEventListener('keydown', this.handleKeydown.bind(this));
   }
 }

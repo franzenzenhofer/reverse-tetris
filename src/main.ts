@@ -2,8 +2,8 @@ import { GameEngine } from './engine/GameEngine';
 import { Renderer } from './ui/Renderer';
 import { UI } from './ui/UI';
 import { InputHandler } from './input/InputHandler';
-import { COLS, ROWS, CELL_SIZE } from './engine/constants';
-import { GAME_EVENTS } from './types/game';
+import { COLS, ROWS, calculateCellSize } from './engine/constants';
+import { GAME_EVENTS, GameConfig } from './types/game';
 import './styles/main.css';
 
 class Game {
@@ -11,34 +11,70 @@ class Game {
   private renderer: Renderer;
   private ui: UI;
   private inputHandler: InputHandler;
+  private canvas: HTMLCanvasElement;
+  private config: GameConfig;
+  private resizeTimeout: number | null = null;
 
   constructor() {
-    const config = { cols: COLS, rows: ROWS, cellSize: CELL_SIZE };
+    // Get canvas element
+    this.canvas = document.getElementById('canvas') as HTMLCanvasElement;
+    if (!this.canvas) throw new Error('Canvas element not found');
+    
+    // Calculate initial config
+    this.config = this.createConfig();
     
     // Initialize engine
-    this.engine = new GameEngine(config);
+    this.engine = new GameEngine(this.config);
     
     // Initialize renderer
-    const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-    if (!canvas) throw new Error('Canvas element not found');
-    this.renderer = new Renderer(canvas, config);
+    this.renderer = new Renderer(this.canvas, this.config);
     
     // Initialize UI
     this.ui = new UI();
     
     // Initialize input
     this.inputHandler = new InputHandler({
-      canvas,
-      config,
+      canvas: this.canvas,
+      config: this.config,
       onCellClick: this.handleCellClick.bind(this),
     });
     
     // Setup event listeners
     this.setupEventListeners();
     
+    // Handle resize
+    this.setupResizeHandler();
+    
     // Start game
     this.engine.generateLevel();
     this.render();
+  }
+
+  private createConfig(): GameConfig {
+    const cellSize = calculateCellSize();
+    return { cols: COLS, rows: ROWS, cellSize };
+  }
+
+  private setupResizeHandler(): void {
+    const handleResize = (): void => {
+      if (this.resizeTimeout) {
+        clearTimeout(this.resizeTimeout);
+      }
+      
+      this.resizeTimeout = window.setTimeout(() => {
+        this.config = this.createConfig();
+        this.renderer = new Renderer(this.canvas, this.config);
+        this.render();
+      }, 100);
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    // Handle viewport changes on mobile
+    if ('visualViewport' in window) {
+      window.visualViewport?.addEventListener('resize', handleResize);
+    }
   }
 
   private setupEventListeners(): void {

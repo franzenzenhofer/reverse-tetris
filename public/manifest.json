@@ -1,0 +1,19 @@
+{
+  "name": "Reverse Tetris",
+  "short_name": "Retris",
+  "description": "A puzzle game where you remove Tetris pieces to clear the board",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "puzzle"]
+}
