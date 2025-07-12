@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reverse Tetris</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+body {
+background: #000;
+color: #fff;
+font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+height: 100vh;
+display: flex;
+justify-content: center;
+align-items: center;
+overflow: hidden;
+}
+
+#game {
+position: relative;
+}
+
+canvas {
+background: #111;
+image-rendering: pixelated;
+image-rendering: crisp-edges;
+}
+
+#ui {
+position: absolute;
+top: 10px;
+left: 10px;
+font-size: 20px;
+font-weight: 700;
+display: flex;
+gap: 20px;
+}
+
+.counter {
+opacity: 0.8;
+}
+
+#win {
+position: absolute;
+inset: 0;
+display: flex;
+justify-content: center;
+align-items: center;
+font-size: 60px;
+background: rgba(0,0,0,0.8);
+opacity: 0;
+pointer-events: none;
+transition: opacity 0.5s;
+}
+
+#win.show {
+opacity: 1;
+}
+</style>
+
+</head>
+<body>
+<div id="game">
+  <canvas id="canvas"></canvas>
+  <div id="ui">
+    <div class="counter" id="level">1</div>
+    <div class="counter" id="pieces">0</div>
+    <div class="counter" id="moves">0</div>
+  </div>
+  <div id="win">✓</div>
+</div>
+
+<script>
+// Constants
+const COLS = 10;
+const ROWS = 20;
+const CELL_SIZE = Math.min(
+  Math.floor((window.innerWidth - 20) / COLS),
+  Math.floor((window.innerHeight - 80) / ROWS),
+  32
+);
+
+// Tetromino definitions with proper relative coordinates
+const SHAPES = [
+  {name: 'I', cells: [[0,1],[1,1],[2,1],[3,1]]},
+  {name: 'O', cells: [[1,0],[2,0],[1,1],[2,1]]},
+  {name: 'T', cells: [[0,1],[1,1],[2,1],[1,0]]},
+  {name: 'S', cells: [[0,1],[1,1],[1,0],[2,0]]},
+  {name: 'Z', cells: [[0,0],[1,0],[1,1],[2,1]]},
+  {name: 'L', cells: [[0,1],[1,1],[2,1],[2,0]]},
+  {name: 'J', cells: [[0,0],[0,1],[1,1],[2,1]]}
+];
+
+// Color palette - more than enough for unique pieces
+const COLORS = [
+  '#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6',
+  '#1abc9c', '#e67e22', '#34495e', '#f1c40f', '#c0392b',
+  '#2980b9', '#27ae60', '#d35400', '#8e44ad', '#16a085',
+  '#7f8c8d', '#bdc3c7', '#95a5a6', '#2c3e50', '#ecf0f1'
+];
+
+// Game state
+class GameState {
+  constructor() {
+    this.board = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+    this.pieces = new Map(); // id -> Piece object
+    this.selected = null;
+    this.moves = 0;
+    this.level = 1;
+    this.animating = false;
+  }
+  
+  reset() {
+    this.board = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+    this.pieces.clear();
+    this.selected = null;
+    this.moves = 0;
+    this.animating = false;
+  }
+}
+
+// Piece class to maintain shape integrity
+class Piece {
+  constructor(id, shape, color, x, y) {
+    this.id = id;
+    this.shape = shape;
+    this.color = color;
+    this.cells = shape.cells.map(([dx, dy]) => [x + dx, y + dy]);
+  }
+  
+  canMoveTo(board, dx, dy) {
+    return this.cells.every(([x, y]) => {
+      const nx = x + dx;
+      const ny = y + dy;
+      return nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && 
+             (!board[ny][nx] || board[ny][nx] === this.id);
+    });
+  }
+  
+  moveTo(dx, dy) {
+    this.cells = this.cells.map(([x, y]) => [x + dx, y + dy]);
+  }
+}
+
+// Game logic
+const game = new GameState();
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+canvas.width = COLS * CELL_SIZE;
+canvas.height = ROWS * CELL_SIZE;
+
+function generateLevel() {
+  game.reset();
+  
+  // Calculate piece count based on level
+  const pieceCount = Math.min(4 + Math.floor(game.level / 2), 12);
+  let nextId = 1;
+  
+  // Generate solvable puzzle by placing pieces from bottom up
+  const placedPieces = [];
+  
+  for (let i = 0; i < pieceCount; i++) {
+    const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    const color = COLORS[nextId - 1]; // Truly unique colors
+    
+    // Try to find a valid position
+    let placed = false;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const x = Math.floor(Math.random() * (COLS - 4));
+      const y = ROWS - 5 - Math.floor(Math.random() * Math.min(10, ROWS - 5));
+      
+      const piece = new Piece(nextId, shape, color, x, y);
+      
+      // Check if position is valid
+      if (piece.cells.every(([px, py]) => !game.board[py][px])) {
+        // Place piece on board
+        piece.cells.forEach(([px, py]) => {
+          game.board[py][px] = nextId;
+        });
+        
+        game.pieces.set(nextId, piece);
+        placedPieces.push(piece);
+        nextId++;
+        placed = true;
+        break;
+      }
+    }
+    
+    if (!placed) i--; // Retry
+  }
+  
+  // Apply initial gravity to settle pieces
+  applyGravity();
+  updateUI();
+  draw();
+}
+
+function applyGravity() {
+  let changed = true;
+  while (changed) {
+    changed = false;
+    
+    // Sort pieces by lowest Y coordinate (bottom first)
+    const sortedPieces = Array.from(game.pieces.values()).sort((a, b) => {
+      const aMaxY = Math.max(...a.cells.map(c => c[1]));
+      const bMaxY = Math.max(...b.cells.map(c => c[1]));
+      return bMaxY - aMaxY;
+    });
+    
+    for (const piece of sortedPieces) {
+      // Clear current position
+      piece.cells.forEach(([x, y]) => {
+        if (game.board[y][x] === piece.id) game.board[y][x] = null;
+      });
+      
+      // Find how far piece can fall
+      let fallDistance = 0;
+      while (piece.canMoveTo(game.board, 0, fallDistance + 1)) {
+        fallDistance++;
+      }
+      
+      if (fallDistance > 0) {
+        piece.moveTo(0, fallDistance);
+        changed = true;
+      }
+      
+      // Place in new position
+      piece.cells.forEach(([x, y]) => {
+        game.board[y][x] = piece.id;
+      });
+    }
+  }
+}
+
+function clearFullLines() {
+  const fullLines = [];
+  
+  for (let y = 0; y < ROWS; y++) {
+    if (game.board[y].every(cell => cell !== null)) {
+      fullLines.push(y);
+    }
+  }
+  
+  if (fullLines.length === 0) return;
+  
+  // Remove cells from full lines
+  for (const lineY of fullLines) {
+    for (let x = 0; x < COLS; x++) {
+      game.board[lineY][x] = null;
+    }
+  }
+  
+  // Update piece cells - remove cells that were on cleared lines
+  for (const piece of game.pieces.values()) {
+    piece.cells = piece.cells.filter(([x, y]) => !fullLines.includes(y));
+    
+    // Remove pieces that have no cells left
+    if (piece.cells.length === 0) {
+      game.pieces.delete(piece.id);
+    }
+  }
+  
+  // Apply gravity after clearing
+  applyGravity();
+}
+
+function removePiece(id) {
+  game.animating = true;
+  const piece = game.pieces.get(id);
+  
+  // Clear from board
+  piece.cells.forEach(([x, y]) => {
+    game.board[y][x] = null;
+  });
+  
+  // Remove piece
+  game.pieces.delete(id);
+  game.moves++;
+  
+  // Animate removal
+  setTimeout(() => {
+    applyGravity();
+    clearFullLines();
+    updateUI();
+    
+    // Check win condition
+    if (game.pieces.size === 0) {
+      document.getElementById('win').classList.add('show');
+      setTimeout(() => {
+        document.getElementById('win').classList.remove('show');
+        game.level++;
+        generateLevel();
+      }, 1500);
+    }
+    
+    game.animating = false;
+    draw();
+  }, 100);
+}
+
+function updateUI() {
+  document.getElementById('level').textContent = game.level;
+  document.getElementById('pieces').textContent = game.pieces.size;
+  document.getElementById('moves').textContent = game.moves;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw pieces
+  for (const piece of game.pieces.values()) {
+    ctx.fillStyle = piece.color;
+    
+    for (const [x, y] of piece.cells) {
+      if (piece.id === game.selected) {
+        // Selected piece - draw with border
+        ctx.fillRect(x * CELL_SIZE + 2, y * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x * CELL_SIZE + 2, y * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+      } else {
+        // Normal piece
+        ctx.fillRect(x * CELL_SIZE + 1, y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+      }
+    }
+  }
+  
+  // Subtle grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= COLS; x++) {
+    ctx.beginPath();
+    ctx.moveTo(x * CELL_SIZE, 0);
+    ctx.lineTo(x * CELL_SIZE, ROWS * CELL_SIZE);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= ROWS; y++) {
+    ctx.beginPath();
+    ctx.moveTo(0, y * CELL_SIZE);
+    ctx.lineTo(COLS * CELL_SIZE, y * CELL_SIZE);
+    ctx.stroke();
+  }
+}
+
+// Input handling
+canvas.addEventListener('click', (e) => {
+  if (game.animating) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+  const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+  
+  const clickedId = game.board[y]?.[x];
+  
+  if (clickedId) {
+    if (game.selected === clickedId) {
+      // Remove piece
+      game.selected = null;
+      removePiece(clickedId);
+    } else {
+      // Select piece
+      game.selected = clickedId;
+      draw();
+    }
+  } else {
+    // Deselect
+    game.selected = null;
+    draw();
+  }
+});
+
+// Start game
+generateLevel();
+</script>
+
+</body>
+</html>
