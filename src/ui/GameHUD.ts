@@ -33,7 +33,7 @@ export class GameHUD {
     timerContainer.className = 'hud-item timer-container';
     timerContainer.innerHTML = `
       <div class="hud-label">TIME</div>
-      <div class="hud-value timer-value">60</div>
+      <div class="hud-value timer-value">120</div>
     `;
     this.timerElement = timerContainer.querySelector('.timer-value')!;
     
@@ -124,7 +124,7 @@ export class GameHUD {
   reset(): void {
     this.scoreElement.textContent = '0';
     this.comboElement.textContent = 'x0';
-    this.timerElement.textContent = '60';
+    this.timerElement.textContent = '120';
     this.levelElement.textContent = '1';
     this.gameOverElement.classList.add('hidden');
     this.comboElement.classList.remove('combo-active', 'combo-hot');

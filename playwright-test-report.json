@@ -126,20 +126,73 @@
   },
   "suites": [
     {
-      "title": "guaranteed-line-clear.spec.ts",
-      "file": "guaranteed-line-clear.spec.ts",
+      "title": "mobile-startup-test.spec.ts",
+      "file": "mobile-startup-test.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Guaranteed Line Clear Test",
-          "file": "guaranteed-line-clear.spec.ts",
+          "title": "Mobile Startup Issues",
+          "file": "mobile-startup-test.spec.ts",
           "line": 3,
           "column": 6,
           "specs": [
             {
-              "title": "should definitely trigger a line clear by removing many pieces",
+              "title": "should start game properly on mobile without text overlay",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4866,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "HUD visible: \u001b[33mtrue\u001b[39m\n"
+                        },
+                        {
+                          "text": "Game over overlay visible: \u001b[33mfalse\u001b[39m\n"
+                        },
+                        {
+                          "text": "Game over after 3 seconds: \u001b[33mfalse\u001b[39m\n"
+                        },
+                        {
+                          "text": "Timer value: 117\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-12T17:50:03.922Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/franz/dev/reverse-tetris/test-results/mobile-startup-test-Mobile-a8d7e-mobile-without-text-overlay-chromium/test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ca10795a512448237574-87a8272ce91627d3343b",
+              "file": "mobile-startup-test.spec.ts",
+              "line": 4,
+              "column": 7
+            },
+            {
+              "title": "should be playable on mobile touch",
               "ok": false,
               "tags": [],
               "tests": [
@@ -154,279 +207,104 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 1159,
+                      "duration": 897,
                       "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/\", waiting until \"load\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/\", waiting until \"load\"\u001b[22m\n\n    at /home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts:16:16",
+                        "message": "Error: locator.tap: The page does not support tap. Use hasTouch context option to enable touch support.",
+                        "stack": "Error: locator.tap: The page does not support tap. Use hasTouch context option to enable touch support.\n    at /home/franz/dev/reverse-tetris/tests/e2e/mobile-startup-test.spec.ts:53:18",
                         "location": {
-                          "file": "/home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts",
-                          "column": 16,
-                          "line": 16
+                          "file": "/home/franz/dev/reverse-tetris/tests/e2e/mobile-startup-test.spec.ts",
+                          "column": 18,
+                          "line": 53
                         },
-                        "snippet": "  14 |     });\n  15 |\n> 16 |     await page.goto('http://localhost:3001');\n     |                ^\n  17 |     await page.waitForLoadState('networkidle');\n  18 |     await page.waitForTimeout(2000);\n  19 |     "
+                        "snippet": "  51 |     \n  52 |     // Try to tap on a piece\n> 53 |     await canvas.tap({ position: { x: 100, y: 400 } });\n     |                  ^\n  54 |     await page.waitForTimeout(100);\n  55 |     \n  56 |     // Tap again to remove"
                       },
                       "errors": [
                         {
                           "location": {
-                            "file": "/home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts",
-                            "column": 16,
-                            "line": 16
+                            "file": "/home/franz/dev/reverse-tetris/tests/e2e/mobile-startup-test.spec.ts",
+                            "column": 18,
+                            "line": 53
                           },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/\", waiting until \"load\"\u001b[22m\n\n\n  14 |     });\n  15 |\n> 16 |     await page.goto('http://localhost:3001');\n     |                ^\n  17 |     await page.waitForLoadState('networkidle');\n  18 |     await page.waitForTimeout(2000);\n  19 |     \n    at /home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts:16:16"
+                          "message": "Error: locator.tap: The page does not support tap. Use hasTouch context option to enable touch support.\n\n  51 |     \n  52 |     // Try to tap on a piece\n> 53 |     await canvas.tap({ position: { x: 100, y: 400 } });\n     |                  ^\n  54 |     await page.waitForTimeout(100);\n  55 |     \n  56 |     // Tap again to remove\n    at /home/franz/dev/reverse-tetris/tests/e2e/mobile-startup-test.spec.ts:53:18"
                         }
                       ],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-07-12T13:58:51.761Z",
+                      "startTime": "2025-07-12T17:50:09.824Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/home/franz/dev/reverse-tetris/test-results/guaranteed-line-clear-Guar-82c3e-ear-by-removing-many-pieces-chromium/test-failed-1.png"
+                          "path": "/home/franz/dev/reverse-tetris/test-results/mobile-startup-test-Mobile-9de4d-be-playable-on-mobile-touch-chromium/test-failed-1.png"
                         },
                         {
                           "name": "error-context",
                           "contentType": "text/markdown",
-                          "path": "/home/franz/dev/reverse-tetris/test-results/guaranteed-line-clear-Guar-82c3e-ear-by-removing-many-pieces-chromium/error-context.md"
+                          "path": "/home/franz/dev/reverse-tetris/test-results/mobile-startup-test-Mobile-9de4d-be-playable-on-mobile-touch-chromium/error-context.md"
                         }
                       ],
                       "errorLocation": {
-                        "file": "/home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts",
-                        "column": 16,
-                        "line": 16
+                        "file": "/home/franz/dev/reverse-tetris/tests/e2e/mobile-startup-test.spec.ts",
+                        "column": 18,
+                        "line": 53
                       }
                     }
                   ],
                   "status": "unexpected"
                 }
               ],
-              "id": "646d4ae5044d2521e992-69d5aa783e5176a8c66d",
-              "file": "guaranteed-line-clear.spec.ts",
-              "line": 4,
+              "id": "ca10795a512448237574-7aa8558832e28b554eb3",
+              "file": "mobile-startup-test.spec.ts",
+              "line": 45,
               "column": 7
             },
             {
-              "title": "should definitely trigger a line clear by removing many pieces",
-              "ok": false,
+              "title": "check initial game state values",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
                   "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
                   "results": [
                     {
                       "workerIndex": 1,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 1295,
-                      "error": {
-                        "message": "Error: page.goto: NS_ERROR_CONNECTION_REFUSED\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/\", waiting until \"load\"\u001b[22m\n",
-                        "stack": "Error: page.goto: NS_ERROR_CONNECTION_REFUSED\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/\", waiting until \"load\"\u001b[22m\n\n    at /home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts:16:16",
-                        "location": {
-                          "file": "/home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts",
-                          "column": 16,
-                          "line": 16
-                        },
-                        "snippet": "  14 |     });\n  15 |\n> 16 |     await page.goto('http://localhost:3001');\n     |                ^\n  17 |     await page.waitForLoadState('networkidle');\n  18 |     await page.waitForTimeout(2000);\n  19 |     "
-                      },
-                      "errors": [
+                      "status": "passed",
+                      "duration": 1216,
+                      "errors": [],
+                      "stdout": [
                         {
-                          "location": {
-                            "file": "/home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts",
-                            "column": 16,
-                            "line": 16
-                          },
-                          "message": "Error: page.goto: NS_ERROR_CONNECTION_REFUSED\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/\", waiting until \"load\"\u001b[22m\n\n\n  14 |     });\n  15 |\n> 16 |     await page.goto('http://localhost:3001');\n     |                ^\n  17 |     await page.waitForLoadState('networkidle');\n  18 |     await page.waitForTimeout(2000);\n  19 |     \n    at /home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts:16:16"
+                          "text": "Initial state: { score: \u001b[32m'0'\u001b[39m, combo: \u001b[32m'x0'\u001b[39m, timer: \u001b[32m'120'\u001b[39m, level: \u001b[32m'1'\u001b[39m }\n"
+                        },
+                        {
+                          "text": "Game state: \u001b[1mnull\u001b[22m\n"
                         }
                       ],
-                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-07-12T13:58:54.186Z",
+                      "startTime": "2025-07-12T17:50:11.576Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/home/franz/dev/reverse-tetris/test-results/guaranteed-line-clear-Guar-82c3e-ear-by-removing-many-pieces-firefox/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/home/franz/dev/reverse-tetris/test-results/guaranteed-line-clear-Guar-82c3e-ear-by-removing-many-pieces-firefox/error-context.md"
+                          "path": "/home/franz/dev/reverse-tetris/test-results/mobile-startup-test-Mobile-25675-k-initial-game-state-values-chromium/test-finished-1.png"
                         }
-                      ],
-                      "errorLocation": {
-                        "file": "/home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts",
-                        "column": 16,
-                        "line": 16
-                      }
+                      ]
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "646d4ae5044d2521e992-6ab8d7de4999f0bdf9db",
-              "file": "guaranteed-line-clear.spec.ts",
-              "line": 4,
-              "column": 7
-            },
-            {
-              "title": "should definitely trigger a line clear by removing many pieces",
-              "ok": false,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
-                  "results": [
-                    {
-                      "workerIndex": 2,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 2,
-                      "error": {
-                        "message": "Error: browserType.launch: \n╔══════════════════════════════════════════════════════╗\n║ Host system is missing dependencies to run browsers. ║\n║ Missing libraries:                                   ║\n║     libicudata.so.66                                 ║\n║     libicui18n.so.66                                 ║\n║     libicuuc.so.66                                   ║\n║     libjpeg.so.8                                     ║\n║     libwebp.so.6                                     ║\n║     libffi.so.7                                      ║\n║     libx264.so                                       ║\n╚══════════════════════════════════════════════════════╝",
-                        "stack": "Error: browserType.launch: \n╔══════════════════════════════════════════════════════╗\n║ Host system is missing dependencies to run browsers. ║\n║ Missing libraries:                                   ║\n║     libicudata.so.66                                 ║\n║     libicui18n.so.66                                 ║\n║     libicuuc.so.66                                   ║\n║     libjpeg.so.8                                     ║\n║     libwebp.so.6                                     ║\n║     libffi.so.7                                      ║\n║     libx264.so                                       ║\n╚══════════════════════════════════════════════════════╝"
-                      },
-                      "errors": [
-                        {
-                          "message": "Error: browserType.launch: \n╔══════════════════════════════════════════════════════╗\n║ Host system is missing dependencies to run browsers. ║\n║ Missing libraries:                                   ║\n║     libicudata.so.66                                 ║\n║     libicui18n.so.66                                 ║\n║     libicuuc.so.66                                   ║\n║     libjpeg.so.8                                     ║\n║     libwebp.so.6                                     ║\n║     libffi.so.7                                      ║\n║     libx264.so                                       ║\n╚══════════════════════════════════════════════════════╝"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-12T13:58:57.470Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "unexpected"
-                }
-              ],
-              "id": "646d4ae5044d2521e992-2d7a1e7a011a4e29889d",
-              "file": "guaranteed-line-clear.spec.ts",
-              "line": 4,
-              "column": 7
-            },
-            {
-              "title": "should definitely trigger a line clear by removing many pieces",
-              "ok": false,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "Mobile Chrome",
-                  "projectName": "Mobile Chrome",
-                  "results": [
-                    {
-                      "workerIndex": 3,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 652,
-                      "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/\", waiting until \"load\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/\", waiting until \"load\"\u001b[22m\n\n    at /home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts:16:16",
-                        "location": {
-                          "file": "/home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts",
-                          "column": 16,
-                          "line": 16
-                        },
-                        "snippet": "  14 |     });\n  15 |\n> 16 |     await page.goto('http://localhost:3001');\n     |                ^\n  17 |     await page.waitForLoadState('networkidle');\n  18 |     await page.waitForTimeout(2000);\n  19 |     "
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts",
-                            "column": 16,
-                            "line": 16
-                          },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3001/\", waiting until \"load\"\u001b[22m\n\n\n  14 |     });\n  15 |\n> 16 |     await page.goto('http://localhost:3001');\n     |                ^\n  17 |     await page.waitForLoadState('networkidle');\n  18 |     await page.waitForTimeout(2000);\n  19 |     \n    at /home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts:16:16"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-12T13:58:59.105Z",
-                      "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/home/franz/dev/reverse-tetris/test-results/guaranteed-line-clear-Guar-82c3e-ear-by-removing-many-pieces-Mobile-Chrome/test-failed-1.png"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/home/franz/dev/reverse-tetris/test-results/guaranteed-line-clear-Guar-82c3e-ear-by-removing-many-pieces-Mobile-Chrome/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/home/franz/dev/reverse-tetris/tests/e2e/guaranteed-line-clear.spec.ts",
-                        "column": 16,
-                        "line": 16
-                      }
-                    }
-                  ],
-                  "status": "unexpected"
-                }
-              ],
-              "id": "646d4ae5044d2521e992-1ad40db01cdce717b741",
-              "file": "guaranteed-line-clear.spec.ts",
-              "line": 4,
-              "column": 7
-            },
-            {
-              "title": "should definitely trigger a line clear by removing many pieces",
-              "ok": false,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "Mobile Safari",
-                  "projectName": "Mobile Safari",
-                  "results": [
-                    {
-                      "workerIndex": 4,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 3,
-                      "error": {
-                        "message": "Error: browserType.launch: \n╔══════════════════════════════════════════════════════╗\n║ Host system is missing dependencies to run browsers. ║\n║ Missing libraries:                                   ║\n║     libicudata.so.66                                 ║\n║     libicui18n.so.66                                 ║\n║     libicuuc.so.66                                   ║\n║     libjpeg.so.8                                     ║\n║     libwebp.so.6                                     ║\n║     libffi.so.7                                      ║\n║     libx264.so                                       ║\n╚══════════════════════════════════════════════════════╝",
-                        "stack": "Error: browserType.launch: \n╔══════════════════════════════════════════════════════╗\n║ Host system is missing dependencies to run browsers. ║\n║ Missing libraries:                                   ║\n║     libicudata.so.66                                 ║\n║     libicui18n.so.66                                 ║\n║     libicuuc.so.66                                   ║\n║     libjpeg.so.8                                     ║\n║     libwebp.so.6                                     ║\n║     libffi.so.7                                      ║\n║     libx264.so                                       ║\n╚══════════════════════════════════════════════════════╝"
-                      },
-                      "errors": [
-                        {
-                          "message": "Error: browserType.launch: \n╔══════════════════════════════════════════════════════╗\n║ Host system is missing dependencies to run browsers. ║\n║ Missing libraries:                                   ║\n║     libicudata.so.66                                 ║\n║     libicui18n.so.66                                 ║\n║     libicuuc.so.66                                   ║\n║     libjpeg.so.8                                     ║\n║     libwebp.so.6                                     ║\n║     libffi.so.7                                      ║\n║     libx264.so                                       ║\n╚══════════════════════════════════════════════════════╝"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-12T13:59:00.926Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "unexpected"
-                }
-              ],
-              "id": "646d4ae5044d2521e992-aeaa4df95d1913e55e07",
-              "file": "guaranteed-line-clear.spec.ts",
-              "line": 4,
+              "id": "ca10795a512448237574-39ad77ddb09af66df6d5",
+              "file": "mobile-startup-test.spec.ts",
+              "line": 67,
               "column": 7
             }
           ]
@@ -436,11 +314,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-07-12T13:58:50.918Z",
-    "duration": 10921.258,
-    "expected": 0,
+    "startTime": "2025-07-12T17:50:02.301Z",
+    "duration": 10832.591,
+    "expected": 2,
     "skipped": 0,
-    "unexpected": 5,
+    "unexpected": 1,
     "flaky": 0
   }
 }

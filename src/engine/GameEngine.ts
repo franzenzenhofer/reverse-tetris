@@ -25,7 +25,7 @@ export class GameEngine extends EventTarget {
       combo: 0,
       corruptionLevel: 0,
       gameOver: false,
-      timeRemaining: 60000, // 60 seconds per level
+      timeRemaining: 120000, // 120 seconds per level
       lastMoveTime: Date.now(),
     };
   }
@@ -750,8 +750,8 @@ export class GameEngine extends EventTarget {
       }));
     }
     
-    // Rise corruption based on time and level
-    const corruptionRate = 0.001 * this.state.level * deltaTime;
+    // Rise corruption based on time and level (much slower rate)
+    const corruptionRate = 0.00001 * this.state.level * deltaTime; // 100x slower
     this.state.corruptionLevel = Math.min(this.config.rows - 5, this.state.corruptionLevel + corruptionRate);
     
     // Apply corruption to board
